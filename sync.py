@@ -29,8 +29,11 @@ IMPORT_CMD = f"rclone copy {DRIVE}:{REMOTE_PATH} {LOCAL_FOLDER}"
 
 # Get local passwords file modification time
 def local_modification_time():
-    local_path = LOCAL_PATH
-    return path.getmtime(local_path)
+    try:
+        return path.getmtime(LOCAL_PATH)
+    except Exception as e:
+        print(f"ERROR! Local mtime set to -1! {e}")
+        return -1
 
 
 # Parse remote passwords file modification time using Rclone's lsl command
@@ -49,19 +52,26 @@ def remote_modification_time():
 
         return datetime.timestamp(date)
     except Exception as e:
-        print(f"ERROR! Remote mtime set to 0! {e}")
-        return 0
+        print(f"ERROR! Remote mtime set to -1! {e}")
+        return -1
 
 
 def sync_passwords():
     local_mtime = int(local_modification_time())
     remote_mtime = int(remote_modification_time())
 
-    if remote_mtime == 0:
+    if remote_mtime == -1:
         print("No remote passwords database found!")
         print("Exporting...")
         system(EXPORT_CMD)
         print("Done: Local => Remote")
+
+        return
+    elif local_mtime == -1:
+        print("No local passwords database found!")
+        print("Importing...")
+        system(IMPORT_CMD)
+        print("Done: Remote => Local")
 
         return
 
